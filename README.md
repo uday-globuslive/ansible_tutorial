@@ -4,6 +4,15 @@ Welcome to the comprehensive Ansible tutorial! This guide will take you from beg
 
 ---
 
+## 🌟 NEW: Supplementary Guides (Highly Recommended!)
+
+| Guide | Description | Best For |
+|-------|-------------|----------|
+| [📘 Complete Beginner Guide](Complete_Beginner_Guide.md) | **Every concept explained in simple terms** with analogies, visuals, and step-by-step examples | Absolute beginners, visual learners |
+| [🎯 Interview Prep Supplement](Interview_Prep_Supplement.md) | Topics NOT covered in main tutorial + common interview questions with answers | Job seekers, interview preparation |
+
+---
+
 ## 📚 Table of Contents
 
 ### Part 1: Fundamentals

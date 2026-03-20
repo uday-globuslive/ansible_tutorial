@@ -1,6 +1,65 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# SAMPLE PLAYBOOKS COLLECTION
+# ═══════════════════════════════════════════════════════════════════════════
+# 
+# This file contains COMPLETE, WORKING playbook examples you can learn from.
+# Each playbook is a real-world automation script you might use in your job.
+#
+# ═══════════════════════════════════════════════════════════════════════════
+# HOW TO USE THESE EXAMPLES
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# 1. Copy the YAML block you want (between ```yaml and ```)
+# 2. Save it as a .yml file (e.g., system_setup.yml)
+# 3. Run it: ansible-playbook -i inventory system_setup.yml
+#
+# Each example includes:
+#   ✓ Variables (what you can customize)
+#   ✓ Tasks (what it does, step by step)
+#   ✓ Handlers (actions triggered by changes)
+#
+# ═══════════════════════════════════════════════════════════════════════════
+# READING A PLAYBOOK - Quick Reference
+# ═══════════════════════════════════════════════════════════════════════════
+#
+#   ---                          # YAML document start
+#   - name: My Playbook          # Human-readable name
+#     hosts: all                 # WHO: Which servers to target
+#     become: true               # Run as root (sudo)
+#     
+#     vars:                      # SETTINGS: Customizable values
+#       app_name: myapp
+#     
+#     tasks:                     # STEPS: What to do
+#       - name: Step 1           # Readable description
+#         apt:                   # MODULE: Type of action
+#           name: vim            # MODULE OPTION: Details
+#     
+#     handlers:                  # TRIGGERS: Run only when notified
+#       - name: Restart Service
+#         service:
+#           name: apache2
+#           state: restarted
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
 # Sample Playbooks Collection
 
 ## 1. System Setup Playbook
+
+### What This Playbook Does
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │ INITIAL SYSTEM SETUP                                                  │
+# │                                                                        │
+# │ Use this when: You have a fresh server that needs basic configuration│
+# │                                                                        │
+# │ It will:                                                               │
+# │   1. Update all system packages (security patches)                    │
+# │   2. Install essential tools (vim, git, curl, etc.)                   │
+# │   3. Set the timezone                                                  │
+# │   4. Create admin user accounts with SSH keys                         │
+# │   5. Harden SSH (disable root login, disable passwords)               │
+# └────────────────────────────────────────────────────────────────────────┘
 
 ```yaml
 # system_setup.yml
@@ -19,50 +78,70 @@
         ssh_key: "ssh-rsa BBBB..."
   
   tasks:
-    # System Update
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 1: System Update
+    # ═══════════════════════════════════════════════════════════════════
+    # WHY: Ensure all packages have latest security patches
+    
     - name: Update apt cache
       apt:
         update_cache: yes
-        cache_valid_time: 3600
+        cache_valid_time: 3600     # Don't update if updated in last hour
       when: ansible_os_family == "Debian"
     
     - name: Upgrade all packages
       apt:
-        upgrade: safe
+        upgrade: safe              # "safe" = only upgrade, don't remove
       when: ansible_os_family == "Debian"
     
-    # Essential Packages
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 2: Install Essential Packages
+    # ═══════════════════════════════════════════════════════════════════
+    # WHY: These tools are needed for daily administration
+    
     - name: Install essential packages
       apt:
         name:
-          - vim
-          - git
-          - curl
-          - wget
-          - htop
-          - net-tools
-          - unzip
-          - software-properties-common
+          - vim                    # Text editor
+          - git                    # Version control
+          - curl                   # Download files
+          - wget                   # Download files
+          - htop                   # Process viewer
+          - net-tools              # Network tools (ifconfig, etc.)
+          - unzip                  # Extract archives
+          - software-properties-common  # Add apt repositories
         state: present
     
-    # Timezone
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 3: Set Timezone
+    # ═══════════════════════════════════════════════════════════════════
+    # WHY: Logs show correct time, cron jobs run at right time
+    
     - name: Set timezone
       timezone:
         name: "{{ timezone }}"
     
-    # Hostname
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 4: Set Hostname
+    # ═══════════════════════════════════════════════════════════════════
+    # WHY: Easy to identify which server you're logged into
+    
     - name: Set hostname
       hostname:
         name: "{{ hostname_prefix }}-{{ inventory_hostname_short }}"
     
-    # Create admin users
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 5: Create Admin Users
+    # ═══════════════════════════════════════════════════════════════════
+    # WHY: Each admin has their own account (audit trail, accountability)
+    
     - name: Create admin users
       user:
         name: "{{ item.name }}"
-        groups: sudo
-        shell: /bin/bash
-        create_home: yes
-      loop: "{{ admin_users }}"
+        groups: sudo               # Can use sudo
+        shell: /bin/bash           # Default shell
+        create_home: yes           # Create home directory
+      loop: "{{ admin_users }}"    # Create each user in the list
     
     - name: Add SSH keys for admin users
       authorized_key:
@@ -71,13 +150,17 @@
         state: present
       loop: "{{ admin_users }}"
     
-    # SSH Hardening
+    # ═══════════════════════════════════════════════════════════════════
+    # STEP 6: SSH Hardening
+    # ═══════════════════════════════════════════════════════════════════
+    # WHY: Prevent brute force attacks and unauthorized access
+    
     - name: Disable root SSH login
       lineinfile:
         path: /etc/ssh/sshd_config
         regexp: '^PermitRootLogin'
         line: 'PermitRootLogin no'
-      notify: Restart SSH
+      notify: Restart SSH          # Only restart if this changes
     
     - name: Disable password authentication
       lineinfile:
@@ -87,6 +170,7 @@
       notify: Restart SSH
   
   handlers:
+    # Handler only runs if "notify: Restart SSH" is triggered
     - name: Restart SSH
       service:
         name: sshd
@@ -94,6 +178,26 @@
 ```
 
 ## 2. LAMP Stack Playbook
+
+### What This Playbook Does
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │ LAMP STACK = Linux + Apache + MySQL + PHP                             │
+# │                                                                        │
+# │ This is the classic web server setup for PHP applications             │
+# │ (WordPress, Laravel, Drupal, etc.)                                    │
+# │                                                                        │
+# │ Architecture:                                                          │
+# │                                                                        │
+# │   User Request                                                         │
+# │        │                                                               │
+# │        ▼                                                               │
+# │   ┌─────────┐     ┌─────────┐     ┌─────────┐                         │
+# │   │ Apache  │ ──► │   PHP   │ ──► │  MySQL  │                         │
+# │   │ (Web)   │     │ (Code)  │     │  (Data) │                         │
+# │   └─────────┘     └─────────┘     └─────────┘                         │
+# │                                                                        │
+# │ This playbook will install and configure all three components!        │
+# └────────────────────────────────────────────────────────────────────────┘
 
 ```yaml
 # lamp_stack.yml
@@ -109,7 +213,10 @@
     server_name: example.com
   
   tasks:
-    # Apache Installation
+    # ═══════════════════════════════════════════════════════════════════
+    # PART 1: Apache Web Server
+    # ═══════════════════════════════════════════════════════════════════
+    
     - name: Install Apache
       apt:
         name: apache2
@@ -120,25 +227,28 @@
         name: "{{ item }}"
         state: present
       loop:
-        - rewrite
-        - ssl
-        - headers
+        - rewrite                  # Pretty URLs (mod_rewrite)
+        - ssl                      # HTTPS support
+        - headers                  # Security headers
       notify: Restart Apache
     
-    # MySQL Installation
+    # ═══════════════════════════════════════════════════════════════════
+    # PART 2: MySQL Database
+    # ═══════════════════════════════════════════════════════════════════
+    
     - name: Install MySQL
       apt:
         name:
-          - mysql-server
-          - mysql-client
-          - python3-mysqldb
+          - mysql-server           # The database server
+          - mysql-client           # Command line tool
+          - python3-mysqldb        # Python library (for Ansible)
         state: present
     
     - name: Start MySQL service
       service:
         name: mysql
         state: started
-        enabled: yes
+        enabled: yes               # Start on boot
     
     - name: Set MySQL root password
       mysql_user:
@@ -147,7 +257,9 @@
         host: localhost
         login_unix_socket: /var/run/mysqld/mysqld.sock
     
-    # PHP Installation
+    # ═══════════════════════════════════════════════════════════════════
+    # PART 3: PHP
+    # ═══════════════════════════════════════════════════════════════════
     - name: Add PHP repository
       apt_repository:
         repo: ppa:ondrej/php

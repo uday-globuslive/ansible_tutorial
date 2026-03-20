@@ -1,6 +1,48 @@
 # Advanced Ansible Topics
 
-## Custom Modules
+## When You Need Advanced Topics (Beginner Explanation)
+
+You'll reach for advanced features when:
+- Built-in modules don't do what you need
+- You want to share automation across teams
+- You need to transform data in special ways
+- You want custom logging or notifications
+
+### Overview of Advanced Topics
+
+| Topic | When To Use | Difficulty |
+|-------|-------------|------------|
+| Custom Modules | Built-in modules don't exist for your need | Hard |
+| Custom Filters | Need to transform data in unique ways | Medium |
+| Callback Plugins | Want custom logging/notifications | Medium |
+| Dynamic Inventory | Hosts change frequently (cloud, containers) | Medium |
+| Ansible Collections | Packaging modules/roles for distribution | Medium |
+| Testing with Molecule | Ensure your roles work correctly | Medium |
+
+---
+
+## Custom Modules (Explained)
+
+### What is a Custom Module?
+
+When Ansible's 3000+ modules still don't do what you need, you write your own!
+
+**Example scenarios:**
+- Interacting with your company's proprietary API
+- Managing a custom in-house application
+- Complex business logic that's hard to express in YAML
+
+### How Custom Modules Work
+
+```
+┌─────────────────────┐       ┌─────────────────────┐
+│ Your Playbook       │       │ library/             │
+│                     │       │   my_module.py       │
+│ - my_custom_module: │──────▶│                     │
+│     name: thing     │       │ Python code that     │
+│     state: present  │       │ does the actual work │
+└─────────────────────┘       └─────────────────────┘
+```
 
 ### Creating a Simple Custom Module
 
