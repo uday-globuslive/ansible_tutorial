@@ -1,0 +1,807 @@
+# Sample Playbooks Collection
+
+## 1. System Setup Playbook
+
+```yaml
+# system_setup.yml
+---
+- name: Initial System Setup
+  hosts: all
+  become: true
+  
+  vars:
+    timezone: "America/New_York"
+    hostname_prefix: "server"
+    admin_users:
+      - name: admin
+        ssh_key: "ssh-rsa AAAA..."
+      - name: devops
+        ssh_key: "ssh-rsa BBBB..."
+  
+  tasks:
+    # System Update
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == "Debian"
+    
+    - name: Upgrade all packages
+      apt:
+        upgrade: safe
+      when: ansible_os_family == "Debian"
+    
+    # Essential Packages
+    - name: Install essential packages
+      apt:
+        name:
+          - vim
+          - git
+          - curl
+          - wget
+          - htop
+          - net-tools
+          - unzip
+          - software-properties-common
+        state: present
+    
+    # Timezone
+    - name: Set timezone
+      timezone:
+        name: "{{ timezone }}"
+    
+    # Hostname
+    - name: Set hostname
+      hostname:
+        name: "{{ hostname_prefix }}-{{ inventory_hostname_short }}"
+    
+    # Create admin users
+    - name: Create admin users
+      user:
+        name: "{{ item.name }}"
+        groups: sudo
+        shell: /bin/bash
+        create_home: yes
+      loop: "{{ admin_users }}"
+    
+    - name: Add SSH keys for admin users
+      authorized_key:
+        user: "{{ item.name }}"
+        key: "{{ item.ssh_key }}"
+        state: present
+      loop: "{{ admin_users }}"
+    
+    # SSH Hardening
+    - name: Disable root SSH login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PermitRootLogin'
+        line: 'PermitRootLogin no'
+      notify: Restart SSH
+    
+    - name: Disable password authentication
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify: Restart SSH
+  
+  handlers:
+    - name: Restart SSH
+      service:
+        name: sshd
+        state: restarted
+```
+
+## 2. LAMP Stack Playbook
+
+```yaml
+# lamp_stack.yml
+---
+- name: Install LAMP Stack
+  hosts: webservers
+  become: true
+  
+  vars:
+    mysql_root_password: "{{ vault_mysql_root_password }}"
+    php_version: "8.1"
+    document_root: /var/www/html
+    server_name: example.com
+  
+  tasks:
+    # Apache Installation
+    - name: Install Apache
+      apt:
+        name: apache2
+        state: present
+    
+    - name: Enable Apache modules
+      apache2_module:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - rewrite
+        - ssl
+        - headers
+      notify: Restart Apache
+    
+    # MySQL Installation
+    - name: Install MySQL
+      apt:
+        name:
+          - mysql-server
+          - mysql-client
+          - python3-mysqldb
+        state: present
+    
+    - name: Start MySQL service
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+    
+    - name: Set MySQL root password
+      mysql_user:
+        name: root
+        password: "{{ mysql_root_password }}"
+        host: localhost
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+    
+    # PHP Installation
+    - name: Add PHP repository
+      apt_repository:
+        repo: ppa:ondrej/php
+        state: present
+    
+    - name: Install PHP and modules
+      apt:
+        name:
+          - "php{{ php_version }}"
+          - "php{{ php_version }}-mysql"
+          - "php{{ php_version }}-curl"
+          - "php{{ php_version }}-gd"
+          - "php{{ php_version }}-mbstring"
+          - "php{{ php_version }}-xml"
+          - "php{{ php_version }}-zip"
+          - libapache2-mod-php{{ php_version }}
+        state: present
+        update_cache: yes
+    
+    # Apache Virtual Host
+    - name: Create virtual host
+      template:
+        src: templates/apache-vhost.conf.j2
+        dest: "/etc/apache2/sites-available/{{ server_name }}.conf"
+      notify: Restart Apache
+    
+    - name: Enable virtual host
+      command: "a2ensite {{ server_name }}.conf"
+      args:
+        creates: "/etc/apache2/sites-enabled/{{ server_name }}.conf"
+      notify: Restart Apache
+    
+    # Create document root
+    - name: Create document root
+      file:
+        path: "{{ document_root }}"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+    
+    # Test PHP file
+    - name: Create info.php
+      copy:
+        content: "<?php phpinfo(); ?>"
+        dest: "{{ document_root }}/info.php"
+        owner: www-data
+        group: www-data
+        mode: '0644'
+  
+  handlers:
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+```
+
+## 3. Docker Installation Playbook
+
+```yaml
+# docker_install.yml
+---
+- name: Install Docker
+  hosts: all
+  become: true
+  
+  vars:
+    docker_users:
+      - "{{ ansible_user }}"
+    docker_compose_version: "2.20.0"
+  
+  tasks:
+    - name: Remove old Docker versions
+      apt:
+        name:
+          - docker
+          - docker-engine
+          - docker.io
+          - containerd
+          - runc
+        state: absent
+    
+    - name: Install required packages
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: yes
+    
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+    
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+    
+    - name: Install Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+        update_cache: yes
+    
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+    
+    - name: Add users to docker group
+      user:
+        name: "{{ item }}"
+        groups: docker
+        append: yes
+      loop: "{{ docker_users }}"
+    
+    - name: Install Docker Compose (standalone)
+      get_url:
+        url: "https://github.com/docker/compose/releases/download/v{{ docker_compose_version }}/docker-compose-linux-x86_64"
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+    
+    - name: Verify Docker installation
+      command: docker --version
+      register: docker_version
+      changed_when: false
+    
+    - name: Display Docker version
+      debug:
+        var: docker_version.stdout
+```
+
+## 4. Nginx Load Balancer Playbook
+
+```yaml
+# nginx_lb.yml
+---
+- name: Configure Nginx Load Balancer
+  hosts: loadbalancers
+  become: true
+  
+  vars:
+    upstream_name: backend
+    backend_servers:
+      - { name: web1, address: "192.168.1.10:80", weight: 5 }
+      - { name: web2, address: "192.168.1.11:80", weight: 3 }
+      - { name: web3, address: "192.168.1.12:80", weight: 2 }
+    lb_method: least_conn  # round_robin, least_conn, ip_hash
+    health_check_interval: 30
+  
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+    
+    - name: Create Nginx load balancer config
+      template:
+        src: templates/nginx-lb.conf.j2
+        dest: /etc/nginx/sites-available/loadbalancer
+        validate: nginx -t -c /etc/nginx/nginx.conf
+      notify: Reload Nginx
+    
+    - name: Enable load balancer site
+      file:
+        src: /etc/nginx/sites-available/loadbalancer
+        dest: /etc/nginx/sites-enabled/loadbalancer
+        state: link
+      notify: Reload Nginx
+    
+    - name: Remove default site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload Nginx
+    
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+  
+  handlers:
+    - name: Reload Nginx
+      service:
+        name: nginx
+        state: reloaded
+```
+
+## 5. Database Backup Playbook
+
+```yaml
+# db_backup.yml
+---
+- name: Database Backup
+  hosts: dbservers
+  become: true
+  
+  vars:
+    backup_dir: /backup/mysql
+    retention_days: 7
+    db_user: backup_user
+    db_password: "{{ vault_db_backup_password }}"
+    databases:
+      - myapp_production
+      - inventory_db
+    
+    # S3 upload (optional)
+    s3_bucket: my-backups
+    s3_region: us-east-1
+    upload_to_s3: true
+  
+  tasks:
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0700'
+    
+    - name: Backup databases
+      mysql_db:
+        name: "{{ item }}"
+        state: dump
+        target: "{{ backup_dir }}/{{ item }}_{{ ansible_date_time.date }}.sql.gz"
+        login_user: "{{ db_user }}"
+        login_password: "{{ db_password }}"
+      loop: "{{ databases }}"
+      register: backup_result
+    
+    - name: Display backup results
+      debug:
+        msg: "Backed up {{ item.item }} to {{ backup_dir }}/{{ item.item }}_{{ ansible_date_time.date }}.sql.gz"
+      loop: "{{ backup_result.results }}"
+    
+    - name: Upload to S3
+      aws_s3:
+        bucket: "{{ s3_bucket }}"
+        src: "{{ backup_dir }}/{{ item }}_{{ ansible_date_time.date }}.sql.gz"
+        object: "mysql/{{ item }}/{{ item }}_{{ ansible_date_time.date }}.sql.gz"
+        mode: put
+        region: "{{ s3_region }}"
+      loop: "{{ databases }}"
+      when: upload_to_s3
+    
+    - name: Remove old backups
+      find:
+        paths: "{{ backup_dir }}"
+        age: "{{ retention_days }}d"
+        recurse: no
+      register: old_backups
+    
+    - name: Delete old backup files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_backups.files }}"
+    
+    - name: Send notification
+      slack:
+        token: "{{ vault_slack_token }}"
+        channel: "#devops"
+        msg: "Database backup completed on {{ inventory_hostname }}"
+      delegate_to: localhost
+      when: slack_notifications | default(false)
+```
+
+## 6. Application Deployment Playbook
+
+```yaml
+# deploy_app.yml
+---
+- name: Deploy Application
+  hosts: appservers
+  become: true
+  serial: "25%"  # Rolling deployment
+  max_fail_percentage: 25
+  
+  vars:
+    app_name: myapp
+    app_user: deploy
+    app_dir: /opt/{{ app_name }}
+    repo_url: git@github.com:company/myapp.git
+    app_version: "{{ version | default('main') }}"
+    env_file: ".env.production"
+  
+  pre_tasks:
+    - name: Check connectivity
+      ping:
+    
+    - name: Drain connections (remove from LB)
+      uri:
+        url: "http://{{ lb_api }}/drain/{{ inventory_hostname }}"
+        method: POST
+      delegate_to: localhost
+      ignore_errors: yes
+  
+  tasks:
+    - name: Create app directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_user }}"
+    
+    - name: Clone/Update repository
+      git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ app_version }}"
+        force: yes
+      become_user: "{{ app_user }}"
+      register: git_result
+    
+    - name: Copy environment file
+      template:
+        src: "templates/{{ env_file }}.j2"
+        dest: "{{ app_dir }}/.env"
+        owner: "{{ app_user }}"
+        mode: '0600'
+    
+    - name: Install dependencies
+      command: npm ci --production
+      args:
+        chdir: "{{ app_dir }}"
+      become_user: "{{ app_user }}"
+      when: git_result.changed
+    
+    - name: Build application
+      command: npm run build
+      args:
+        chdir: "{{ app_dir }}"
+      become_user: "{{ app_user }}"
+      when: git_result.changed
+    
+    - name: Run database migrations
+      command: npm run migrate
+      args:
+        chdir: "{{ app_dir }}"
+      become_user: "{{ app_user }}"
+      run_once: true
+      when: git_result.changed
+    
+    - name: Restart application service
+      systemd:
+        name: "{{ app_name }}"
+        state: restarted
+        daemon_reload: yes
+      when: git_result.changed
+    
+    - name: Wait for application to start
+      uri:
+        url: "http://localhost:3000/health"
+        status_code: 200
+      register: health
+      until: health.status == 200
+      retries: 30
+      delay: 5
+  
+  post_tasks:
+    - name: Enable in load balancer
+      uri:
+        url: "http://{{ lb_api }}/enable/{{ inventory_hostname }}"
+        method: POST
+      delegate_to: localhost
+    
+    - name: Record deployment
+      uri:
+        url: "http://monitoring.example.com/api/deployments"
+        method: POST
+        body_format: json
+        body:
+          application: "{{ app_name }}"
+          version: "{{ app_version }}"
+          host: "{{ inventory_hostname }}"
+          timestamp: "{{ ansible_date_time.iso8601 }}"
+      delegate_to: localhost
+      run_once: true
+```
+
+## 7. Kubernetes Cluster Setup
+
+```yaml
+# k8s_setup.yml
+---
+- name: Setup Kubernetes Prerequisites
+  hosts: k8s_cluster
+  become: true
+  
+  tasks:
+    - name: Disable swap
+      command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+    
+    - name: Remove swap from fstab
+      lineinfile:
+        path: /etc/fstab
+        regexp: '\sswap\s'
+        state: absent
+    
+    - name: Load kernel modules
+      modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+    
+    - name: Set sysctl parameters
+      sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: yes
+      loop:
+        - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+        - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+        - { name: 'net.ipv4.ip_forward', value: '1' }
+    
+    - name: Install containerd
+      apt:
+        name: containerd
+        state: present
+    
+    - name: Configure containerd
+      template:
+        src: templates/containerd-config.toml.j2
+        dest: /etc/containerd/config.toml
+      notify: Restart containerd
+    
+    - name: Add Kubernetes apt key
+      apt_key:
+        url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+        state: present
+    
+    - name: Add Kubernetes repository
+      apt_repository:
+        repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+        state: present
+    
+    - name: Install Kubernetes components
+      apt:
+        name:
+          - kubelet={{ k8s_version }}-00
+          - kubeadm={{ k8s_version }}-00
+          - kubectl={{ k8s_version }}-00
+        state: present
+        update_cache: yes
+    
+    - name: Hold Kubernetes packages
+      dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+  
+  handlers:
+    - name: Restart containerd
+      service:
+        name: containerd
+        state: restarted
+
+- name: Initialize Kubernetes Master
+  hosts: k8s_masters[0]
+  become: true
+  
+  tasks:
+    - name: Initialize cluster
+      command: >
+        kubeadm init
+        --pod-network-cidr={{ pod_network_cidr }}
+        --apiserver-advertise-address={{ ansible_default_ipv4.address }}
+      args:
+        creates: /etc/kubernetes/admin.conf
+      register: kubeadm_init
+    
+    - name: Create .kube directory
+      file:
+        path: /home/{{ ansible_user }}/.kube
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+    
+    - name: Copy admin.conf
+      copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/{{ ansible_user }}/.kube/config
+        remote_src: yes
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+    
+    - name: Get join command
+      command: kubeadm token create --print-join-command
+      register: join_command
+    
+    - name: Store join command
+      set_fact:
+        k8s_join_command: "{{ join_command.stdout }}"
+      delegate_to: localhost
+      delegate_facts: true
+
+- name: Join Worker Nodes
+  hosts: k8s_workers
+  become: true
+  
+  tasks:
+    - name: Join cluster
+      command: "{{ hostvars['localhost']['k8s_join_command'] }}"
+      args:
+        creates: /etc/kubernetes/kubelet.conf
+```
+
+## 8. Monitoring Stack Playbook
+
+```yaml
+# monitoring_setup.yml
+---
+- name: Setup Monitoring Stack
+  hosts: monitoring
+  become: true
+  
+  vars:
+    prometheus_version: "2.45.0"
+    grafana_version: "10.0.0"
+    node_exporter_version: "1.6.0"
+    alertmanager_version: "0.25.0"
+    prometheus_scrape_interval: "15s"
+    prometheus_retention: "15d"
+  
+  tasks:
+    # Prometheus
+    - name: Create prometheus user
+      user:
+        name: prometheus
+        system: yes
+        shell: /sbin/nologin
+    
+    - name: Download Prometheus
+      get_url:
+        url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+        dest: /tmp/prometheus.tar.gz
+    
+    - name: Extract Prometheus
+      unarchive:
+        src: /tmp/prometheus.tar.gz
+        dest: /opt
+        remote_src: yes
+    
+    - name: Create Prometheus directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: prometheus
+        group: prometheus
+      loop:
+        - /etc/prometheus
+        - /var/lib/prometheus
+    
+    - name: Configure Prometheus
+      template:
+        src: templates/prometheus.yml.j2
+        dest: /etc/prometheus/prometheus.yml
+        owner: prometheus
+      notify: Restart Prometheus
+    
+    - name: Create Prometheus systemd service
+      template:
+        src: templates/prometheus.service.j2
+        dest: /etc/systemd/system/prometheus.service
+      notify:
+        - Reload systemd
+        - Restart Prometheus
+    
+    - name: Start Prometheus
+      service:
+        name: prometheus
+        state: started
+        enabled: yes
+    
+    # Grafana
+    - name: Add Grafana repository
+      apt_repository:
+        repo: "deb https://packages.grafana.com/oss/deb stable main"
+        state: present
+    
+    - name: Add Grafana GPG key
+      apt_key:
+        url: https://packages.grafana.com/gpg.key
+        state: present
+    
+    - name: Install Grafana
+      apt:
+        name: grafana={{ grafana_version }}
+        state: present
+        update_cache: yes
+    
+    - name: Configure Grafana
+      template:
+        src: templates/grafana.ini.j2
+        dest: /etc/grafana/grafana.ini
+      notify: Restart Grafana
+    
+    - name: Start Grafana
+      service:
+        name: grafana-server
+        state: started
+        enabled: yes
+    
+    - name: Configure Grafana datasource
+      uri:
+        url: "http://localhost:3000/api/datasources"
+        method: POST
+        body_format: json
+        body:
+          name: Prometheus
+          type: prometheus
+          url: http://localhost:9090
+          access: proxy
+          isDefault: true
+        user: admin
+        password: "{{ grafana_admin_password }}"
+        force_basic_auth: yes
+        status_code: [200, 409]  # 409 = already exists
+  
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+    
+    - name: Restart Prometheus
+      service:
+        name: prometheus
+        state: restarted
+    
+    - name: Restart Grafana
+      service:
+        name: grafana-server
+        state: restarted
+```
+
+---
+
+*These sample playbooks demonstrate common real-world automation patterns. Customize them for your specific needs!*
