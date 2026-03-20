@@ -4,7 +4,32 @@ Welcome to the comprehensive Ansible tutorial! This guide will take you from beg
 
 ---
 
-## 🌟 NEW: Supplementary Guides (Highly Recommended!)
+## 🚀 NEW: Ansible Development (For Job Interviews!)
+
+> **Important**: The interviewer mentioned they're looking for **Ansible development experience**, not just infrastructure knowledge. Check out these new guides:
+
+| Guide | Description | Best For |
+|-------|-------------|----------|
+| [🔧 Ansible Development Guide](17_Custom_Modules/Ansible_Development_Guide.md) | **Complete guide to building custom modules** with 10+ production scenarios, architecture deep-dives, and interview Q&A | **Ansible developers, job interviews** |
+| [💼 Real-World Module Scenarios](17_Custom_Modules/Real_World_Module_Scenarios.md) | **12 complete module implementations** including ServiceNow CMDB, Vault secret rotation, K8s validation, compliance scanning | **Portfolio building, showcasing skills** |
+
+### What's Covered in Development Guides:
+- ✅ Module architecture and Python structure
+- ✅ ServiceNow CMDB integration
+- ✅ Database migration automation
+- ✅ HashiCorp Vault secret rotation
+- ✅ Kubernetes manifest validation
+- ✅ CIS compliance scanning
+- ✅ Multi-cloud resource management
+- ✅ Feature flag management
+- ✅ Incident response automation
+- ✅ FinOps cost allocation tagging
+- ✅ Interview questions with sample answers
+- ✅ Testing strategies (Molecule, unit tests)
+
+---
+
+## 🌟 Supplementary Guides (Highly Recommended!)
 
 | Guide | Description | Best For |
 |-------|-------------|----------|
@@ -62,6 +87,13 @@ Welcome to the comprehensive Ansible tutorial! This guide will take you from beg
 | 16 | [Kubernetes Deployments](16_Kubernetes_Deployments/README.md) | K8s cluster setup, app deployment, operators | Advanced |
 | 17 | [Custom Modules](17_Custom_Modules/README.md) | Building your own Ansible modules | Expert |
 
+### 🔥 Ansible Development (Interview Focus!)
+
+| # | Guide | Description | Level |
+|---|-------|-------------|-------|
+| NEW | [🔧 Ansible Development Guide](17_Custom_Modules/Ansible_Development_Guide.md) | Complete module development with 10+ scenarios | Expert |
+| NEW | [💼 Real-World Module Scenarios](17_Custom_Modules/Real_World_Module_Scenarios.md) | 12 production module implementations | Expert |
+
 ---
 
 ## 🎯 Learning Paths
@@ -115,6 +147,52 @@ For becoming an Ansible expert:
 - [ ] Build Ansible-based K8s Operator
 - [ ] Implement compliance automation
 - [ ] Multi-cluster sync with GitOps
+
+---
+
+## 🎯 Interview Preparation: Ansible Development Focus
+
+Since the interviewer is looking for **Ansible development experience**, here's what to emphasize:
+
+### What to Highlight in Your Interview
+
+| Topic | What to Say | Where to Learn |
+|-------|-------------|----------------|
+| **Custom Modules** | "I developed custom modules for ServiceNow CMDB integration, reducing manual CMDB updates by 90%" | [Development Guide](17_Custom_Modules/Ansible_Development_Guide.md) |
+| **API Integration** | "I built modules that integrate with internal REST APIs using Python's fetch_url" | [Real-World Scenarios](17_Custom_Modules/Real_World_Module_Scenarios.md) |
+| **Idempotency** | "I ensure all my modules support check mode and only make changes when necessary" | [Module Architecture](17_Custom_Modules/Ansible_Development_Guide.md#module-architecture-deep-dive) |
+| **Testing** | "I use Molecule for integration testing and pytest for unit tests" | [Testing Section](17_Custom_Modules/Ansible_Development_Guide.md#testing) |
+| **Security** | "I always use no_log for sensitive parameters and validate all inputs" | All module examples |
+
+### Key Development Skills to Demonstrate
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                    ANSIBLE DEVELOPER SKILLS                       │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  1. PYTHON EXPERTISE                                               │
+│     ├── AnsibleModule class usage                                  │
+│     ├── Error handling (try/except, fail_json)                     │
+│     └── API integration (requests, fetch_url)                      │
+│                                                                    │
+│  2. MODULE DEVELOPMENT                                             │
+│     ├── DOCUMENTATION, EXAMPLES, RETURN blocks                     │
+│     ├── Argument specification (types, choices, no_log)            │
+│     └── Check mode support                                         │
+│                                                                    │
+│  3. TESTING                                                        │
+│     ├── Unit tests with pytest                                     │
+│     ├── Integration tests with Molecule                            │
+│     └── Idempotency verification                                   │
+│                                                                    │
+│  4. REAL-WORLD INTEGRATIONS                                        │
+│     ├── ServiceNow, Jira, PagerDuty                               │
+│     ├── HashiCorp Vault, AWS Secrets Manager                       │
+│     └── Kubernetes, Docker, Cloud providers                        │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 

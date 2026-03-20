@@ -1,5 +1,30 @@
 # Custom Ansible Module Development Guide
 
+## 📚 Complete Learning Path for Module Development
+
+This folder contains everything you need to become an Ansible developer, from your first "Hello World" module to production-ready enterprise integrations.
+
+### Start Here Based on Your Level
+
+| Your Level | Start With | Description |
+|------------|------------|-------------|
+| **Beginner** | [📘 Beginner Tutorial](Beginner_Module_Tutorial.md) | Your first module, building blocks, 5 progressive examples |
+| **Intermediate** | This README | Core concepts, more complex examples |
+| **Advanced** | [🔧 Development Guide](Ansible_Development_Guide.md) | 10 production scenarios with interview prep |
+| **Expert** | [💼 Real-World Scenarios](Real_World_Module_Scenarios.md) | 12 complete enterprise modules |
+
+### All Guides in This Folder
+
+| Guide | Focus | Best For |
+|-------|-------|----------|
+| [📘 Beginner Tutorial](Beginner_Module_Tutorial.md) | First modules, basic Python, packaging | Learning from scratch |
+| [🔧 Development Guide](Ansible_Development_Guide.md) | Architecture, testing, interview Q&A | Job interviews |
+| [💼 Real-World Scenarios](Real_World_Module_Scenarios.md) | Enterprise modules, complex integrations | Portfolio building |
+| [🎯 HTC JD Interview Prep](HTC_JD_Interview_Prep.md) | Day 2 Ops, Self-Healing, Azure, ServiceNow | **HTC Global Services role** |
+| [📦 More Use Cases](more_use_cases.md) | Additional production examples | Reference |
+
+---
+
 ## Understanding Custom Modules (Beginner Explanation)
 
 ### When Would You Need a Custom Module?
