@@ -198,6 +198,46 @@ db2.example.com
 webservers
 dbservers
 ```
+### Inventory file with password instead of ssh key and ip address passed.
+```ini
+# ~/ansible/inventory/hosts
+
+# Local machine
+[local]
+localhost ansible_connection=local
+
+# Web servers
+[webservers]
+#ansibletest1 ansible_host=10.11.53.120
+ansibletest2 ansible_host=10.11.53.121
+ansibletest3 ansible_host=10.11.53.119
+ansibletest4 ansible_host=10.11.53.115
+
+# Database servers
+[dbservers]
+ansiblectest1 ansible_host=10.11.53.127
+ansiblectest2 ansible_host=10.11.53.129
+ansiblectest3 ansible_host=10.11.53.123
+ansiblectest4 ansible_host=10.11.53.126
+
+# All servers
+[all:children]
+webservers
+dbservers
+
+[all:vars]
+ansible_password=Password@1234
+```
+
+
+### Need to export below variable so that this cfg file will be considered for settings.
+```bash
+export ANSIBLE_CONFIG=~/ansible/ansible.cfg
+```
+### Without variable pass as inline.
+```bash
+ANSIBLE_CONFIG=~/ansible/ansible.cfg ansible all -m ping
+```
 
 ---
 
